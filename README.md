@@ -1,19 +1,12 @@
-# Tekton Genie
-
-A smart Tekton PipelineRun generator and validator powered by LlamaStack and RAG (Retrieval-Augmented Generation).
 
 ## Overview
 
-Tekton Genie is an AI-powered tool that helps you generate, validate, and manage Tekton PipelineRuns. It uses a combination of vector database storage and large language models to understand Tekton documentation and generate valid PipelineRun configurations and leverages AI agent to validate the generated PipelineRun YAML.
+This an AI-powered tool that helps you generate Tekton PipelineRuns. It uses a combination of vector database storage and large language models to understand Tekton documentation and generate valid PipelineRun configurations and leverages AI agent to validate the generated PipelineRun YAML.
 
 ## Features
 
 - 📚 **Document Ingestion**: Automatically processes and indexes Tekton documentation for contextual understanding
 - 🔧 **PipelineRun Generation**: Creates Tekton PipelineRuns based on natural language requirements
-- ✅ **Validation**: Built-in YAML validation and external validator support
-- 🛠️ **Auto-fixing**: Automatically analyzes and fixes common validation errors
-### Future Scope
-- 📝 **RAG Integration**: Uses Retrieval-Augmented Generation for context-aware PipelineRun creation
 
 ## Components
 
@@ -29,28 +22,9 @@ This component handles the ingestion of Tekton documentation into a vector datab
 
 The main PipelineRun generation tool that:
 
-- Accepts natural language requirements for PipelineRun creation
 - Searches the knowledge base for relevant examples and context
 - Generates valid Tekton PipelineRun configurations
-- Validates and fixes common errors
 
-### 3. Validation and Auto-fixing Workflow:
-
-1. **Initial Generation**: Creates a PipelineRun based on user requirements
-2. **YAML Validation**:
-   - Performs basic YAML syntax validation
-   - Checks for required Tekton fields and structure
-   - Optionally uses external Tekton validator for deep validation
-3. **Auto-fixing Process**:
-   - If validation fails, analyzes the error messages
-   - Automatically generates fixes using context from the knowledge base
-   - Re-validates the fixed PipelineRun (predefined number of iterations)
-   - Presents the fixed version for user approval
-4. **Save and Export**:
-   - Saves the validated PipelineRun to a YAML file
-   - Optionally ingests successful generations into the knowledge base
-
----
 
 ## 💡 General Explanation
 
