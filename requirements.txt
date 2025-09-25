@@ -1,0 +1,48 @@
+# Main requirements for Tekton Converter
+# Core dependencies
+
+# AI/LLM integration
+# For Gemini (Google AI)
+google-generativeai>=0.3.0
+
+# Alternative: If using OpenAI
+# openai>=1.0.0
+
+# HTTP requests
+requests>=2.25.0
+
+# YAML processing
+PyYAML>=6.0
+
+# Terminal output formatting
+termcolor>=2.0.0
+
+# Type hints support
+typing-extensions>=4.0.0
+
+# LlamaStack client for interacting with LlamaStack REST API
+llama_stack_client==0.2.20
+
+# Path handling (built-in, but listed for clarity)
+# pathlib - built-in module
+
+# JSON processing (built-in, but listed for clarity)
+# json - built-in module
+
+# Subprocess handling (built-in, but listed for clarity)
+# subprocess - built-in module
+
+# Regular expressions (built-in, but listed for clarity)
+# re - built-in module
+
+# Argument parsing (built-in, but listed for clarity)
+# argparse - built-in module
+
+# Time utilities (built-in, but listed for clarity)
+# time - built-in module
+
+# Optional: For enhanced logging
+# structlog>=21.0.0  # Uncomment if structured logging is needed
+
+# Optional: For better performance with large files
+# numpy>=1.21.0  # Uncomment if needed for large file processing 
