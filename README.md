@@ -57,3 +57,10 @@ podman run -it --rm \
   -p 8321:8321 \
   docker.io/llamastack/distribution-starter \
   --config config.yaml
+
+```
+### How to run
+Make sure the jenkinsfile you want to convert is in the same directory as the generate_tekton_pipeine.py script
+``` bash
+python generate_tektn_pipeline.py <YOUR JENKINSFILE NAME>
+```
