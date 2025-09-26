@@ -62,5 +62,5 @@ podman run -it --rm \
 ### How to run
 Make sure the jenkinsfile you want to convert is in the same directory as the generate_tekton_pipeine.py script
 ``` bash
-python generate_tektn_pipeline.py <YOUR JENKINSFILE NAME>
+python generate_tekton_pipeline.py <YOUR JENKINSFILE NAME>
 ```
