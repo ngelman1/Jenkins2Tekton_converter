@@ -1,0 +1,11 @@
+# --- Environments and Build Caches ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- RAG/Vector Database Files ---
+# This directory contains the large FAISS index and SQLite databases
+llama_data/
+*.db
+*.faiss
+*.sqlite
