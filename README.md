@@ -40,9 +40,9 @@ The project uses **Retrieval-Augmented Generation (RAG)** to create robust Tekto
 
 This project requires the LlamaStack server running in the background to handle the vector database and RAG functionality.
 
-### 1. Start the LlamaStack Server (Mandatory)
+### 1. Start the Llama index container
 
-The server runs on `http://localhost:8321` and acts as the backend for the vector database and LLM endpoint.
+The server runs on `http://localhost:8320` and acts as the backend for the vector database and LLM endpoint.
 
 Ensure your `GEMINI_API_KEY` is set in your environment before running:
 
@@ -50,13 +50,10 @@ Ensure your `GEMINI_API_KEY` is set in your environment before running:
 export GEMINI_API_KEY=<your-api-key>
 
 podman run -it --rm \
-  -v ./config.yaml:/app/config.yaml:z \
-  -v ${SQLITE_STORE_DIR:-~/.llama/distributions/gemini}:/data \
-  -e GEMINI_API_KEY=$GEMINI_API_KEY \
-  -e SQLITE_STORE_DIR=/data \
-  -p 8321:8321 \
-  docker.io/llamastack/distribution-starter \
-  --config config.yaml
+    -v $(pwd)/tekton_docs:/app/tekton_docs:z \
+    -v $(pwd)/tekton_docs_index:/app/tekton_docs_index:z \
+    -p 8320:8320 \
+    quay.io/ngelman/jenkins2tekton:latest
 
 ```
 ### How to run
