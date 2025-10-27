@@ -11,6 +11,9 @@ from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core import load_index_from_storage
 from llama_index.core.schema import NodeWithScore 
 from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
+from llama_index.core.query_engine import RetrieverQueryEngine 
+from llama_index.core.response.pprint_utils import pprint_response
+from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.llms.google_genai import GoogleGenAI
 
 INDEX_STORAGE_DIR = "./tekton_docs_index"
@@ -50,11 +53,12 @@ def load_index() ->VectorStoreIndex:
 
 def run_simple_query(index: VectorStoreIndex , query:str , top_k: int):
     cprint(f"RAG query for hard-coded question:{QUERY_TEXT}" , "yellow")
-    query_engine = index.as_query_engine(similarity_top = 4)
+    retriever = VectorIndexRetriever(index = index , similarity_top_k = top_k)
+    query_engine = RetrieverQueryEngine(retriever=retriever)
     response = query_engine.query(QUERY_TEXT)
 
     cprint("\n[LLM Answer (Synthesis)]", "blue")
-    print(response.response.strip())
+    pprint_response(response)
     
 
     cprint("\n[Retrieval Assessment]", "yellow")
