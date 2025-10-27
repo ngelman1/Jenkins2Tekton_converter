@@ -24,7 +24,7 @@ try:
         exit(1)
 
     Settings.embed_model = GoogleGenAIEmbedding(model_mane="models/text-embedding-004" , api_key=api_key)
-    Settings.llm=GoogleGenAI(model="gemini-2.5-flash" , api_key=api_key)
+    Settings.llm = GoogleGenAI(model="gemini-2.5-flash" , api_key=api_key)
     cprint("RAG configuration Loaded" , "green")
 
 except Exception as e:
@@ -32,3 +32,42 @@ except Exception as e:
     exit(1)
 
     
+
+def load_index() ->VectorStoreIndex:
+    if not Path(INDEX_STORAGE_DIR).exists():
+        cprint(f"{INDEX_STORAGE_DIR} does not exists in the current directory" , "red")
+        cprint("To create index, run documents ingestion" , "red")
+        exit(1)
+
+    try:
+        index_context = StorageContext.from_defaults(persist_dir=INDEX_STORAGE_DIR) #this bundels all refernces of the data store files created while ingestion
+        index = load_index_from_storage(index_context) #initiation of the index object
+        return index
+    except Exception as e:
+        cprint(f"Failed loading index: {e}" , "red")
+
+
+
+def run_simple_query(index: VectorStoreIndex , query:str , top_k: int):
+    cprint(f"RAG query for hard-coded question:{QUERY_TEXT}" , "yellow")
+    query_engine = index.as_query_engine(similarity_top = 4)
+    response = query_engine.query(QUERY_TEXT)
+
+    cprint("\n[LLM Answer (Synthesis)]", "blue")
+    print(response.response.strip())
+    
+
+    cprint("\n[Retrieval Assessment]", "yellow")
+    for i, node_with_score in enumerate(response.source_nodes, 1):
+        score = node_with_score.score
+        source = node_with_score.metadata.get('file_name', node_with_score.metadata.get('source', 'N/A'))
+        print(f"  [{i}] Source: {source} | SCORE: {score:.4f} ")
+
+
+
+def main():
+    vector_index = load_index()
+    run_simple_query(vector_index , QUERY_TEXT , 4)
+
+if __name__ == "__main__":
+    main()
