@@ -30,25 +30,26 @@ The main PipelineRun generation tool that:
 
 The project uses **Retrieval-Augmented Generation (RAG)** to create robust Tekton YAMLs. When you run the generation script, the process follows these three steps:
 
-* **Query RAG**: The script sends a query (currently hard-coded) to the vector database (powered by LlamaStack).
-* **Retrieve Context**: The system retrieves relevant code snippets and documentation chunks from your indexed knowledge base (the documents you ingested).
-* **Final Conversion**: This retrieved context is sent to the Large Language Model (LLM) along with your conversion prompt, allowing the LLM to generate an accurate, context-aware Tekton PipelineRun YAML.
+* **Query RAG**: The script constructs a complex query (including the Jenkinsfile content) and sends it to the local vector index.
+* **Retrieve Context**: The system retrieves relevant code snippets and documentation chunks (based on similarity scores) directly from your local disk storage.
+* **Final Conversion**: This retrieved context is sent to the Large Language Model (LLM) (Gemini) along with your conversion prompt, allowing the LLM to generate an accurate, context-aware Tekton PipelineRun YAML.
 
 ---
 
 ## 💻 Essential Usage Instructions
 
-This project requires the LlamaStack server running in the background to handle the vector database and RAG functionality.
+This workflow runs your LlamaIndex application directly inside a custom Podman container, leveraging your local files for persistent storage.
 
-### 1. Start the Llama index container
-
-The server runs on `http://localhost:8320` and acts as the backend for the vector database and LLM endpoint.
+### 1. Start the RAG container
 
 Ensure your `GEMINI_API_KEY` is set in your environment before running:
+Add it to your .env file, or run: 
 
 ```bash
 export GEMINI_API_KEY=<your-api-key>
+```
 
+```bash
 podman run -it --rm \
     -v $(pwd)/tekton_docs:/app/tekton_docs:z \
     -v $(pwd)/tekton_docs_index:/app/tekton_docs_index:z \
@@ -57,7 +58,13 @@ podman run -it --rm \
 
 ```
 ### How to run
-Make sure the jenkinsfile you want to convert is in the same directory as the generate_tekton_pipeine.py script
+To build the vector index needed for RAG (run this inside the container):
 ``` bash
-python generate_tekton_pipeline.py <YOUR JENKINSFILE NAME>
+python ingest_tekton_data.py
+```
+
+To run the pipeline generation, make sure your jenkinsfile is in the same directory as the generating script
+
+``` bash
+python generate_tekton_pipeline.py <YOUT JENKINSFILE NAME>
 ```
