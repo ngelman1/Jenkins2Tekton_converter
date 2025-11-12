@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+
+    environment {
+        DEFAULT_MESSAGE = "The quick brown fox jumps over the lazy dog."
+        FINAL_MESSAGE = ""
+    }
+
+    parameters {
+        choice(
+            name: 'CASE_OPTION',
+            choices: ['uppercase', 'lowercase'],
+            description: 'Choose how to transform the message'
+        )
+    }
+
+    stages {
+        stage('Apply Transformation') {
+            steps {
+                script {
+                    if (params.CASE_OPTION == 'uppercase') {
+                        FINAL_MESSAGE = DEFAULT_MESSAGE.toUpperCase()
+                    } else if (params.CASE_OPTION == 'lowercase') {
+                        FINAL_MESSAGE = DEFAULT_MESSAGE.toLowerCase()
+                    } else {
+                        FINAL_MESSAGE = DEFAULT_MESSAGE // fallback
+                    }
+                    echo "Transformed Message: ${FINAL_MESSAGE}"
+                }
+            }
+        }
+    }
+}
