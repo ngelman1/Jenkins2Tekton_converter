@@ -1,0 +1,43 @@
+// Jenkinsfile (Declarative Pipeline)
+
+pipeline {
+    // Run the pipeline on any available agent.
+    agent any
+
+    // Define variables for the repository and branch.
+    environment {
+        // The URL of your repository.
+        REPO_URL = 'https://github.com/ngelman1/Jenkins2Tekton_conversion'
+        BRANCH_NAME = 'master'
+    }
+
+    // Define the steps of the pipeline.
+    stages {
+
+        // Stage 1: Clone the Git repository.
+        stage('Checkout Code') {
+            steps {
+                // The 'git' step runs from the repository root, so no path changes are needed.
+                git(url: 'https://github.com/ngelman1/Jenkins2Tekton_conversion', branch: 'master')
+            }
+        }
+
+        // Stage 2: Verify the repository was cloned.
+        stage('Verify Checkout') {
+            steps {
+                // Execute a shell command to list the contents of the workspace.
+                // The path here is relative to the repository root.
+                sh 'echo "Listing contents of the Pipeline5_gitPlugin directory:"'
+                sh 'ls -al Pipeline5_gitPlugin/'
+            }
+        }
+    }
+
+    // Define actions that run after the pipeline completes.
+    post {
+        // This block always runs, regardless of the build result.
+        always {
+            echo 'Pipeline finished.'
+        }
+    }
+}

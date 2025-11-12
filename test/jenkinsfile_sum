@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        NUMBER_STRING_DATA = "10,25,5,15,30"
+    }
+
+    stages {
+        stage('Define Data') {
+            steps {
+                script {
+                    echo "--- Input Number Data ---"
+                    echo "Numbers to process: ${env.NUMBER_STRING_DATA}"
+                    echo "-------------------------"
+                }
+            }
+        }
+
+        stage('Calculate Sum') {
+            steps {
+                script {
+                    echo "Calculating sum of numbers..."
+                    def numbers = env.NUMBER_STRING_DATA.split(',')
+                    def sum = 0
+                    numbers.each { num ->
+                        sum += num.toInteger()
+                    }
+                    echo "DEBUG: Writing sum (${sum}) to file"
+                    writeFile file: 'calculated_sum.txt', text: sum.toString()
+                }
+            }
+        }
+
+        stage('Format Final String') {
+            steps {
+                script {
+                    def sum = readFile('calculated_sum.txt').trim()
+                    echo "DEBUG: Read sum from file: ${sum}"
+                    def finalMessage = "Original Numbers: [${env.NUMBER_STRING_DATA}] | Total Sum: ${sum}"
+                    echo "Formatted String: ${finalMessage}"
+                    writeFile file: 'final_result.txt', text: finalMessage
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "--- Raw Final String for Cross-Platform SHA Hashing ---"
+                def result = readFile('final_result.txt').trim()
+                echo "${result}"
+                echo "--------------------------------------------------------"
+            }
+        }
+    }
+}

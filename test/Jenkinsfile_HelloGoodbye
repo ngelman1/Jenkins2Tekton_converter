@@ -1,0 +1,34 @@
+// Shared variable outside pipeline block
+def finalMessage = ''
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Create Greeting') {
+            steps {
+                script {
+                    finalMessage = "Hello from Stage 1!"
+                    echo "Stage 1 Message: ${finalMessage}"
+                }
+            }
+        }
+
+        stage('Append to Greeting') {
+            steps {
+                script {
+                    finalMessage += " Goodbye from Stage 2!"
+                    echo "Stage 2 Message: ${finalMessage}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "Final Message: ${finalMessage}"
+            }
+        }
+    }
+}

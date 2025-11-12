@@ -1,23 +1,37 @@
 import os
 import sys
 import argparse
+
 from pathlib import Path
 from termcolor import cprint
 from typing import List
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
+
 
 from llama_index.core import VectorStoreIndex, Settings , load_index_from_storage
 from llama_index.core.storage.storage_context import StorageContext
-from llama_index.core.schema import NodeWithScore 
+from llama_index.core.schema import NodeWithScore
 from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from llama_index.core.query_engine import RetrieverQueryEngine 
+from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response.pprint_utils import pprint_response
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.llms.google_genai import GoogleGenAI
 from llama_index.core.response_synthesizers import ResponseMode
+from llama_index.vector_stores.postgres import PGVectorStore
 
-INDEX_STORAGE_DIR = "./tekton_docs_index"
-QUERY_TEXT = "How to convert a Jenkinsfile to a Tekton pipeline"
+DB_HOST = "localhost"
+DB_PORT = "5432"
+DB_USER = "raguser"
+DB_PASS = "ragpassword"
+DB_NAME = "tekton_vector_db"
+VECTOR_TABLE_NAME_DOCS = "conversion_docs_chunks"
+VECTOR_TABLE_NAME_PLUGINS = "plugins_info_chunks"
+EMBEDDING_DIMENSION = 768
+TOP_K_CHUNKS = 4
+
+# INDEX_STORAGE_DIR = "./tekton_docs_index"
+
+
 load_dotenv()
 api_key = os.getenv('GEMINI_API_KEY')
 LLM_prompt = """
@@ -48,7 +62,7 @@ try:
         cprint("GEMINI_API_KEY not set")
         exit(1)
 
-    Settings.embed_model = GoogleGenAIEmbedding(model_name="models/text-embedding-004" , api_key=api_key)
+    Settings.embed_model = GoogleGenAIEmbedding(model_name="models/text-embedding-004" , api_key=api_key) #consider 001 instead
     Settings.llm = GoogleGenAI(model="gemini-2.5-flash" , api_key=api_key)
     cprint("RAG configuration Loaded" , "green")
 
@@ -56,20 +70,40 @@ except Exception as e:
     cprint("RAG configuration failed" , "red")
     exit(1)
 
-    
 
-def load_index() ->VectorStoreIndex:
-    if not Path(INDEX_STORAGE_DIR).exists():
-        cprint(f"{INDEX_STORAGE_DIR} does not exists in the current directory" , "red")
-        cprint("To create index, run documents ingestion" , "red")
-        exit(1)
 
+
+def load_indexs() ->tuple[VectorStoreIndex, VectorStoreIndex]:
     try:
-        index_context = StorageContext.from_defaults(persist_dir=INDEX_STORAGE_DIR) #this bundels all refernces of the data store files created while ingestion
-        index = load_index_from_storage(index_context) #initiation of the index object
-        return index
+        docs_vector_store = PGVectorStore.from_params(
+            database=DB_NAME,
+            host=DB_HOST,
+            password=DB_PASS,
+            port=DB_PORT,
+            user=DB_USER,
+            embed_dim=EMBEDDING_DIMENSION,
+            table_name=VECTOR_TABLE_NAME_DOCS
+        )
+        docs_index = VectorStoreIndex.from_vector_store(vector_store= docs_vector_store)
+        cprint(f"Index loaded: {VECTOR_TABLE_NAME_DOCS}", "green")
+
+        plugins_vector_store = PGVectorStore.from_params(
+            database=DB_NAME,
+            host=DB_HOST,
+            password=DB_PASS,
+            port=DB_PORT,
+            user=DB_USER,
+            embed_dim=EMBEDDING_DIMENSION,
+            table_name=VECTOR_TABLE_NAME_PLUGINS
+        )
+        plugins_index = VectorStoreIndex.from_vector_store(vector_store=plugins_vector_store)
+        cprint(f"Index loaded: {VECTOR_TABLE_NAME_PLUGINS}", "green")
+
+        return docs_index ,plugins_index
+
     except Exception as e:
-        cprint(f"Failed loading index: {e}" , "red")
+        cprint(f"Failed loading indexes from POSTGRES. Check the server is running. Error: {e}" , "Red")
+
 
 
 def read_jenkinsfile(filename: str) -> str:
@@ -78,50 +112,54 @@ def read_jenkinsfile(filename: str) -> str:
         exit(1)
     with open(Path(filename) , 'r' , encoding='utf-8') as file:
         return file.read()
-    
 
 
-def run_conversion_query(index: VectorStoreIndex, jenkinsfile_content: str, query: str, top_k: int) -> tuple[str, str]:
-    
-    cprint(f"RAG retrieval query: {query}", "yellow")
-    retriever = VectorIndexRetriever(index=index, similarity_top_k=top_k)
-    retrieval_results: List[NodeWithScore] = retriever.retrieve(query)
 
-    cprint("\n[Retrieval Assessment]", "yellow")
-    context_texts = []
-    
-    for i, node_with_score in enumerate(retrieval_results, 1):
-        score = node_with_score.score
-        source = node_with_score.metadata.get('file_name', node_with_score.metadata.get('source', 'N/A'))
-        context_texts.append(node_with_score.text)
-
-        print(f"  [{i}] Source: {source} | SCORE: {score:.4f} ")
-    
-    combined_context = "\n\n---\n\n".join(context_texts)
-    final_yaml_output = generate_final_conversion(combined_context, jenkinsfile_content)
-    
-    cprint("\n[Final Tekton Conversion]", "blue")
-    print(final_yaml_output)
-
-    return combined_context, final_yaml_output
-
-
-def generate_final_conversion(RAG_response: str , jenkinsfile: str) -> str:
+def generate_final_conversion(RAG_context: str, jenkinsfile_content: str) -> str:
     prompt = LLM_prompt.format(
-        RAG_result_placeholder = RAG_response , 
-        jenkinsfile_content_placeholder = jenkinsfile
+        RAG_result_placeholder = RAG_context,
+        jenkinsfile_content_placeholder = jenkinsfile_content
     )
     response = Settings.llm.complete(prompt)
     return response.text.strip()
 
 
+
+def run_conversion_query(index: VectorStoreIndex, jenkinsfile_content: str, query: str, top_k: int):
+
+    cprint(f"\n--- RAG Retrieval Query ---", "yellow")
+    cprint(f"Query: {query}", "yellow")
+
+
+    retriever = VectorIndexRetriever(index=index, similarity_top_k=top_k)
+    retrieval_results: List[NodeWithScore] = retriever.retrieve(query)
+
+    cprint("\n[Retrieval Assessment]", "yellow")
+    context_texts = []
+
+    for i, node_with_score in enumerate(retrieval_results, 1):
+        score = node_with_score.score
+        source = node_with_score.node.metadata.get('file_name', node_with_score.node.metadata.get('source', 'N/A'))
+
+        context_texts.append(node_with_score.text)
+        print(f"  [{i}] Source: {source} | SCORE: {score:.4f} ")
+
+    combined_context = "\n\n---\n\n".join(context_texts)
+
+    final_yaml_output = generate_final_conversion(combined_context, jenkinsfile_content)
+
+    cprint("\n[Final Tekton Conversion]", "blue")
+    print(final_yaml_output)
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('jenkinsfile_path', help='Path to the Jenkinsfile to convert.') 
+    parser.add_argument('jenkinsfile_path', help='Path to the Jenkinsfile to convert.')
     args = parser.parse_args()
-    vector_index = load_index()
+    docs_index, plugins_index = load_indexs()
     jenkinsfile_content = read_jenkinsfile(args.jenkinsfile_path)
-    run_conversion_query(vector_index, jenkinsfile_content, QUERY_TEXT, 4)
+    RETRIEVAL_QUERY = f"Convert this Jenkinsfile to Tekton YAML: {Path(args.jenkinsfile_path).name}"
+    run_conversion_query(docs_index, jenkinsfile_content, RETRIEVAL_QUERY, TOP_K_CHUNKS)
 
 if __name__ == "__main__":
     main()
