@@ -1,8 +1,10 @@
 import os
 import sys
+import argparse
 from pathlib import Path
 from termcolor import cprint
 from dotenv import load_dotenv
+from typing import List, Dict
 
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core import SimpleDirectoryReader
@@ -43,19 +45,14 @@ except Exception as e:
     sys.exit(1)
 
 
-#---------------------------------DOCS_VECTOR------------------------------------------------------------------
+documents = SimpleDirectoryReader(input_dir=DOCS_DIR).load_data()
+print(f"Total documents loaded: {len(documents)}")
+
+#---------------------------------POSTGRES-----------------------------------------------------------------
 
 
 def ingest_data_to_postgres():
 
-    try:
-        documents = SimpleDirectoryReader(input_dir=DOCS_DIR).load_data()
-        if not documents:
-            cprint(f"No documents found in {DOCS_DIR}.", "yellow")
-            return
-    except Exception as e:
-        cprint(f"Error reading documents: {e}", "red")
-        sys.exit(1)
 
     cprint(f"Connecting to PostgreSQL database: {DB_NAME} for DOCS", "blue")
     docs_vector_store = PGVectorStore.from_params(
@@ -78,8 +75,6 @@ def ingest_data_to_postgres():
     cprint(f"Ingestion complete. {len(documents)} documents vectorized and stored in '{VECTOR_TABLE_NAME_DOCS}'.", "green")
 
 
-#---------------------------------PLUGINS_VECTOR------------------------------------------------------------------
-
 
     plugins_vector_store = PGVectorStore.from_params(
         database=DB_NAME,
@@ -93,5 +88,22 @@ def ingest_data_to_postgres():
 
 
 
+
+#---------------------------------LLAMA_INDEX-----------------------------------------------------------------
+
+
+def ingest_data_to_llamaindex(document: List):
+    index = VectorStoreIndex.from_documents(documents)
+    index.storage_context.persist(persist_dir=DOCS_DIR)
+
+
+
+
 if __name__ == "__main__":
-    ingest_data_to_postgres()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--backend', required=True, choices=['POSTGRES', 'LLAMA_INDEX'])
+    args = parser.parse_args()
+    if args.backend == "POSTGRES":
+        ingest_data_to_postgres(documents)
+    elif args.backend == "LLAMA_INDEX":
+        ingest_data_to_llamaindex(documents)
