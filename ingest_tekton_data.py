@@ -27,6 +27,7 @@ DOCS_DIR = Path("./tekton_docs")
 CATALOG_BASE_URL = "https://artifacthub.io/packages/tekton-task/tekton-catalog-tasks/"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/tektoncd/catalog/main/task/"
 TEKTON_CATALOG_URL = "https://artifacthub.io/packages/search?repo=tekton-catalog-tasks"
+LOCAL_INDEX_STORAGE_DIR = "./tekton_docs_index"
 
 load_dotenv()
 api_key = os.getenv('GEMINI_API_KEY')
@@ -94,7 +95,7 @@ def ingest_data_to_postgres():
 
 def ingest_data_to_llamaindex(document: List):
     index = VectorStoreIndex.from_documents(documents)
-    index.storage_context.persist(persist_dir=DOCS_DIR)
+    index.storage_context.persist(persist_dir=LOCAL_INDEX_STORAGE_DIR)
 
 
 
