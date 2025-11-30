@@ -5,30 +5,11 @@ This an AI-powered tool that helps you generate Tekton PipelineRuns. It uses a c
 
 ## Features
 
-- 📚 **Document Ingestion**: Automatically processes and indexes Tekton documentation for contextual understanding
-- 🔧 **PipelineRun Generation**: Creates Tekton PipelineRuns based on natural language requirements
-- 🔄 Dual Backend: Supports both local file system (FAISS) and external server (PostgreSQL) storage.
+- **Document Ingestion**: Automatically processes and indexes Tekton documentation for contextual understanding
+- **PipelineRun Generation**: Creates Tekton PipelineRuns based on natural language requirements
+- **Dual Backend**: Supports both local file system (FAISS) and external server (PostgreSQL) storage.
 
-## Components
-
-### 1. Document Ingestion (`ingest_tekton_data.py`)
-
-This component handles the ingestion of Tekton documentation into a vector database:
-
-- Supports multiple document formats (.md, .txt, .pdf, .html, .docx, .pptx, .csv, .json, .yaml, .yml)
-- Processes documents into chunks for efficient retrieval
-- Stores documents with metadata in a vector database (FAISS by or POSTGRES)
-- Ingestion type can be decided using the --backend flag (LLAMA_INDEX or POSTGRES)
-
-### 2. PipelineRun Generation (`generate_tekton_pipeline.py`)
-
-The main PipelineRun generation tool that:
-
-- Searches the knowledge base for relevant examples and context
-- Generates valid Tekton PipelineRun configurations
-
-
-## 💡 General Explanation
+## How It Works
 
 The project uses **Retrieval-Augmented Generation (RAG)** to create robust Tekton YAMLs. When you run the generation script, the process follows these three steps:
 
@@ -38,54 +19,61 @@ The project uses **Retrieval-Augmented Generation (RAG)** to create robust Tekto
 
 ---
 
-## 💻 Essential Usage Instructions
+## Prerequisites
 
-This workflow runs your LlamaIndex application directly inside a custom Podman container, leveraging your local files for persistent storage.
+- Podman (or Docker)
+- A Gemini API key
 
-### 1. Start the RAG container
+## Usage
 
-Ensure your `GEMINI_API_KEY` is set in your environment before running:
-Add it to your .env file, or run:
+### 1. Set up your API key
+
+Export your Gemini API key as an environment variable:
 
 ```bash
-export GEMINI_API_KEY=<your-api-key>
+export GEMINI_API_KEY="your-actual-api-key-here"
 ```
-If you are using the POSTGRES DB, a pgvector container must be running on localhost:5432.
-To start the database server in the backround run:
-```bash
-podman run --detach \
-  --name tekton-postgres \
-  -e POSTGRES_USER=raguser \
-  -e POSTGRES_PASSWORD=ragpassword \
-  -e POSTGRES_DB=tekton_vector_db \
-  -p 5432:5432 \
-  docker.io/pgvector/pgvector:0.8.1-pg18-trixie
-```
-To start the RAG container:
+
+### 2. Start the Jenkins2Tekton container
+
+The container comes with a pre-built RAG index, so you can start using it immediately:
+
 ```bash
 podman run -it --rm \
-    -v $(pwd)/tekton_docs:/app/tekton_docs:z \
-    -v $(pwd)/tekton_docs_index:/app/tekton_docs_index:z \
+    -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
+    -p 8320:8320 \
+    quay.io/ngelman/jenkins2tekton:latest
+```
+
+**Note:** The pre-built index is included in the container image. You don't need to mount volumes or build the index yourself.
+
+### 3. Generate Tekton Pipeline
+
+Inside the container, copy your Jenkinsfile to `/app` and run the generation script:
+
+```bash
+# Copy your Jenkinsfile into the container (from another terminal):
+podman cp /path/to/your/Jenkinsfile <container-id>:/app/
+
+# Inside the container, generate the pipeline:
+python generate_tekton_pipeline.py Jenkinsfile --backend LLAMA_INDEX
+```
+
+Or mount your Jenkinsfile directory when starting the container:
+
+```bash
+podman run -it --rm \
+    -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
+    -v $(pwd):/workspace:z \
     -p 8320:8320 \
     quay.io/ngelman/jenkins2tekton:latest
 
-```
-### How to run
-To build the vector index needed for RAG Use the --backend flag to specify where the vectors should be saved:
-``` bash
-# Option 1: Ingest to Postgres Server (Recommended for concurrency)
-python ingest_tekton_data.py --backend POSTGRES
-
-# Option 2: Ingest to Local File System (For quick development/testing)
-python ingest_tekton_data.py --backend LLAMA_INDEX
+# Inside the container:
+python generate_tekton_pipeline.py /workspace/Jenkinsfile --backend LLAMA_INDEX
 ```
 
-To run the pipeline generation, make sure your jenkinsfile is in the same directory as the generating script and use the matching --backend flag to tell the script where to load the index from.
+---
 
-``` bash
-# Option 1: Query Postgres Index
-python generate_tekton_pipeline.py <YOUR JENKINSFILE NAME> --backend POSTGRES
+## Development
 
-# Option 2: Query Local File Index
-python generate_tekton_pipeline.py <YOUR JENKINSFILE NAME> --backend LLAMA_INDEX
-```
+For information on local development setup, testing, and contributing to the project, see [DEVELOPMENT.md](DEVELOPMENT.md).

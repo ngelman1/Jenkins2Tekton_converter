@@ -9,6 +9,9 @@ PyYAML>=6.0
 # Terminal output formatting
 termcolor>=2.0.0
 
+# Environment variable management
+python-dotenv>=1.0.0
+
 # Type hints support
 typing-extensions>=4.0.0
 
@@ -26,3 +29,9 @@ llama-index-llms-google-genai
 
 # Embedding Connector (for vector creation/RAG)
 llama-index-embeddings-google-genai
+
+# Vector store connectors
+llama-index-vector-stores-postgres
+
+# PostgreSQL adapter (required for pgvector)
+psycopg2-binary>=2.9.0
