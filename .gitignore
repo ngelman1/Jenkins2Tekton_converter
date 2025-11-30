@@ -5,7 +5,8 @@ __pycache__/
 
 # --- RAG/Vector Database Files ---
 # This directory contains the large FAISS index and SQLite databases
+# Developers must build this locally before building the container image
 llama_data/
+tekton_docs_index/
 *.db
-*.faiss
 *.sqlite
