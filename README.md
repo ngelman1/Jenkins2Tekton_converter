@@ -62,6 +62,13 @@ podman run --detach \
   docker.io/pgvector/pgvector:0.8.1-pg18-trixie
 ```
 To start the RAG container:
+
+**Note:** Create the `tekton_docs_index` directory first if it doesn't exist:
+```bash
+mkdir -p tekton_docs_index
+```
+
+Then run the container:
 ```bash
 podman run -it --rm \
     -v $(pwd)/tekton_docs:/app/tekton_docs:z \
