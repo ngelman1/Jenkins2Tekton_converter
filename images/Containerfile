@@ -12,9 +12,9 @@ COPY *.py ./
 COPY config.yaml ./
 COPY tekton_docs/ ./tekton_docs/
 
-# Copy the pre-built RAG index (built by developers)
+# Copy the pre-built ChromaDB vector database (built by developers)
 # Users will use this pre-built index instead of building their own
-COPY tekton_docs_index/ ./tekton_docs_index/
+COPY chroma_db/ ./chroma_db/
 # temporary, for testing only
 COPY test/ ./test/
 

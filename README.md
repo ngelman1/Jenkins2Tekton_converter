@@ -7,14 +7,14 @@ This an AI-powered tool that helps you generate Tekton PipelineRuns. It uses a c
 
 - **Document Ingestion**: Automatically processes and indexes Tekton documentation for contextual understanding
 - **PipelineRun Generation**: Creates Tekton PipelineRuns based on natural language requirements
-- **Dual Backend**: Supports both local file system (FAISS) and external server (PostgreSQL) storage.
+- **ChromaDB Backend**: Uses ChromaDB vector database for efficient semantic search and retrieval
 
 ## How It Works
 
 The project uses **Retrieval-Augmented Generation (RAG)** to create robust Tekton YAMLs. When you run the generation script, the process follows these three steps:
 
-* **Query RAG**: Dynamically Loads Index from the chosen backend (Postgres or Local Disk) and queries it.
-* **Retrieve Context**: The system retrieves relevant code snippets and documentation chunks (based on similarity scores) directly from your local disk storage.
+* **Query RAG**: Loads the vector index from ChromaDB and queries it with your Jenkinsfile context.
+* **Retrieve Context**: The system retrieves relevant code snippets and documentation chunks (based on similarity scores) from the ChromaDB vector database.
 * **Final Conversion**: This retrieved context is sent to the Large Language Model (LLM) (Gemini) along with your conversion prompt, allowing the LLM to generate an accurate, context-aware Tekton PipelineRun YAML.
 
 ---
@@ -56,7 +56,7 @@ Inside the container, copy your Jenkinsfile to `/app` and run the generation scr
 podman cp /path/to/your/Jenkinsfile <container-id>:/app/
 
 # Inside the container, generate the pipeline:
-python generate_tekton_pipeline.py Jenkinsfile --backend LLAMA_INDEX
+python generate_tekton_pipeline.py Jenkinsfile
 ```
 
 Or mount your Jenkinsfile directory when starting the container:
@@ -69,7 +69,7 @@ podman run -it --rm \
     quay.io/ngelman/jenkins2tekton:latest
 
 # Inside the container:
-python generate_tekton_pipeline.py /workspace/Jenkinsfile --backend LLAMA_INDEX
+python generate_tekton_pipeline.py /workspace/Jenkinsfile
 ```
 
 ---
