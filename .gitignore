@@ -4,9 +4,8 @@ __pycache__/
 *.pyc
 
 # --- RAG/Vector Database Files ---
-# This directory contains the large FAISS index and SQLite databases
+# This directory contains the ChromaDB vector database
 # Developers must build this locally before building the container image
-llama_data/
-tekton_docs_index/
+chroma_db/
 *.db
 *.sqlite
