@@ -4,7 +4,6 @@ import argparse
 from typing import List, Dict, Any
 from termcolor import cprint
 from jenkins import Jenkins, JenkinsException
-from dotenv import load_dotenv
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -37,12 +36,12 @@ def get_all_jobs(server: Jenkins) -> List[Dict[str, Any]]:
 
 
 def main():
-    load_dotenv()
     jenkins_url = os.getenv(JENKINS_URL_ENV)
     username = os.getenv(JENKINS_USER_ENV)
     token = os.getenv(JENKINS_TOKEN_ENV)
     if not jenkins_url or not username or not token:
-        cprint("\nFATAL: Missing critical env var. Ensure ENKINS_URL, JENKINS_USER, and JENKINS_TOKEN are defined in your .env file ", "red")
+        cprint("\nFATAL: Missing required environment variables.", "red")
+        cprint("Please set: JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN", "yellow")
         print("-" * 50)
         sys.exit(1)
 
