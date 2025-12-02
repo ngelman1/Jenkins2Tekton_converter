@@ -1,43 +1,40 @@
-import os
 import sys
 import argparse
 from pathlib import Path
 from termcolor import cprint
-from dotenv import load_dotenv
 from typing import List
 
-from llama_index.core import VectorStoreIndex, Settings
+from llama_index.core import VectorStoreIndex
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.storage.storage_context import StorageContext
-from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from llama_index.llms.google_genai import GoogleGenAI
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 
-# ChromaDB Configuration
-CHROMA_PERSIST_DIR = "./chroma_db"
-COLLECTION_NAME = "default_data"
-EMBEDDING_DIMENSION = 768
+from rag_config import setup_rag_configuration, CHROMA_PERSIST_DIR, COLLECTION_NAME
+
+# Documentation directory
 DOCS_DIR = Path("./tekton_docs")
 
-load_dotenv()
-api_key = os.getenv('GEMINI_API_KEY')
 
+def load_documents(docs_dir: Path) -> List:
+    """
+    Load documents from the specified directory.
 
-try:
-    if not api_key:
-        cprint("FATAL: GEMINI_API_KEY not set in .env file.", "red")
+    Args:
+        docs_dir: Path to the directory containing documentation
+
+    Returns:
+        List of loaded documents
+    """
+    if not docs_dir.exists():
+        cprint(f"FATAL: Documentation directory '{docs_dir}' does not exist.", "red")
         sys.exit(1)
-    Settings.embed_model = GoogleGenAIEmbedding(model_name="models/text-embedding-004", api_key=api_key)
-    Settings.llm = GoogleGenAI(model="gemini-2.5-flash", api_key=api_key)
-    cprint("RAG Configuration Loaded.", "green")
-except Exception as e:
-    cprint(f"API_KEY Configuration error: {e}", "red")
-    sys.exit(1)
 
+    cprint(f"Loading documents from: {docs_dir}", "blue")
+    documents = SimpleDirectoryReader(input_dir=docs_dir).load_data()
+    cprint(f"✓ Loaded {len(documents)} documents", "green")
 
-documents = SimpleDirectoryReader(input_dir=DOCS_DIR).load_data()
-print(f"Total documents loaded: {len(documents)}")
+    return documents
 
 
 def ingest_data_to_chromadb(documents: List):
@@ -78,10 +75,22 @@ def ingest_data_to_chromadb(documents: List):
     cprint(f"✓ ChromaDB persisted to: {CHROMA_PERSIST_DIR}", "green")
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the ingestion script."""
     parser = argparse.ArgumentParser(
         description="Ingest Tekton documentation into ChromaDB vector database"
     )
     args = parser.parse_args()
 
+    # Setup RAG configuration
+    setup_rag_configuration()
+
+    # Load documents
+    documents = load_documents(DOCS_DIR)
+
+    # Ingest to ChromaDB
     ingest_data_to_chromadb(documents)
+
+
+if __name__ == "__main__":
+    main()
