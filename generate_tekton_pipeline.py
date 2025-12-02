@@ -3,32 +3,24 @@ import sys
 import argparse
 from pathlib import Path
 from termcolor import cprint
-from typing import List, Tuple
+from typing import List
 from dotenv import load_dotenv
 import logging
 
-# --- LLAMAINDEX IMPORTS ---
-from llama_index.core import VectorStoreIndex, Settings , load_index_from_storage
+from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.storage.storage_context import StorageContext
 from llama_index.core.schema import NodeWithScore
 from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.llms.google_genai import GoogleGenAI
-from llama_index.vector_stores.postgres import PGVectorStore
-# --------------------------
+from llama_index.vector_stores.chroma import ChromaVectorStore
+import chromadb
 
 # --- CONFIGURATION ---
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_USER = "raguser"
-DB_PASS = "ragpassword"
-DB_NAME = "tekton_vector_db"
-VECTOR_TABLE_NAME_DOCS = "conversion_docs_chunks"
-VECTOR_TABLE_NAME_PLUGINS = "plugins_info_chunks"
+CHROMA_PERSIST_DIR = "./chroma_db"
+COLLECTION_NAME = "default_data"
 EMBEDDING_DIMENSION = 768
 TOP_K_CHUNKS = 4
-INDEX_STORAGE_DIR = "./tekton_docs_index"
 # ---------------------
 
 load_dotenv()
@@ -64,7 +56,6 @@ try:
     Settings.embed_model = GoogleGenAIEmbedding(model_name="models/text-embedding-004" , api_key=api_key)
     Settings.llm = GoogleGenAI(model="gemini-2.5-flash" , api_key=api_key)
     cprint("RAG configuration Loaded" , "green")
-
 except Exception as e:
     cprint(f"RAG configuration failed: {e}", "red")
     sys.exit(1)
@@ -78,54 +69,36 @@ def read_jenkinsfile(filename: str) -> str:
         return file.read()
 
 
-# ---------------------------------------------------------POSTGRES FUNCTIONS--------------------------------------------------------
-
-def load_indexs_POSTGRES() -> Tuple[VectorStoreIndex, VectorStoreIndex]:
-    """Loads DOCS and PLUGINS indexes from the external PostgreSQL server."""
-    try:
-        DB_PARAMS = dict(database=DB_NAME,
-                        host=DB_HOST,
-                        password=DB_PASS,
-                        port=DB_PORT,
-                        user=DB_USER,
-                        embed_dim=EMBEDDING_DIMENSION)
-
-        docs_vector_store = PGVectorStore.from_params(**DB_PARAMS, table_name=VECTOR_TABLE_NAME_DOCS)
-        docs_index = VectorStoreIndex.from_vector_store(vector_store=docs_vector_store)
-        cprint(f"Index loaded: {VECTOR_TABLE_NAME_DOCS} (Postgres)", "green")
-
-        plugins_vector_store = PGVectorStore.from_params(**DB_PARAMS, table_name=VECTOR_TABLE_NAME_PLUGINS)
-        plugins_index = VectorStoreIndex.from_vector_store(vector_store=plugins_vector_store)
-        cprint(f"Index loaded: {VECTOR_TABLE_NAME_PLUGINS} (Postgres)", "green")
-
-        return docs_index, plugins_index
-
-    except Exception as e:
-        cprint(f"FATAL: Failed loading indexes from POSTGRES. Check the server is running. Error: {e}", "red")
-        sys.exit(1)
-
-
-# ---------------------------------------------------------LLAMA_INDEX FUNCTIONS--------------------------------------------------------
-
-def load_index_llamaindex() -> VectorStoreIndex:
-    """Loads the single default index from the local file system."""
-
-    if not Path(INDEX_STORAGE_DIR).exists():
-        cprint(f"Local storage '{INDEX_STORAGE_DIR}' does not exist. To create the index run the llama-index ingestion", "red")
+def load_index_chromadb() -> VectorStoreIndex:
+    """
+    Load the default Tekton documentation index from ChromaDB.
+    Uses the 'default_data' collection that ships with the container.
+    Future: Support loading per-customer collections for multi-tenancy.
+    """
+    if not Path(CHROMA_PERSIST_DIR).exists():
+        cprint(f"ChromaDB storage '{CHROMA_PERSIST_DIR}' does not exist.", "red")
+        cprint(f"To create the index, run: python ingest_tekton_data.py", "yellow")
         sys.exit(1)
 
     try:
-        index_context = StorageContext.from_defaults(persist_dir=INDEX_STORAGE_DIR)
-        index = load_index_from_storage(index_context)
-        cprint(f"Index loaded: {INDEX_STORAGE_DIR} (Local File System)", "green")
-        return index
+        cprint(f"Loading ChromaDB from: {CHROMA_PERSIST_DIR}", "blue")
 
+        # Initialize ChromaDB client
+        chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+
+        # Get the default collection
+        chroma_collection = chroma_client.get_collection(name=COLLECTION_NAME)
+
+        cprint(f"✓ Collection loaded: '{COLLECTION_NAME}' ({chroma_collection.count()} vectors)", "green")
+
+        # Create vector store from collection
+        vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+
+        # Return index from vector store
+        return VectorStoreIndex.from_vector_store(vector_store=vector_store)
     except Exception as e:
-        cprint(f"Failed loading local index: {e}", "red")
+        cprint(f"Failed loading ChromaDB index: {e}", "red")
         sys.exit(1)
-
-
-
 
 
 def generate_final_conversion(RAG_context: str, jenkinsfile_content: str) -> str:
@@ -159,26 +132,20 @@ def run_conversion_query(index: VectorStoreIndex, jenkinsfile_content: str, quer
     print(final_yaml_output)
 
 
-
-
-
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('jenkinsfile_path')
-    parser.add_argument('--backend', default='POSTGRES', choices=['POSTGRES', 'LLAMA_INDEX'])
+    parser = argparse.ArgumentParser(
+        description="Generate Tekton pipeline from Jenkinsfile using ChromaDB-powered RAG"
+    )
+    parser.add_argument('jenkinsfile_path', help='Path to the Jenkinsfile to convert')
     args = parser.parse_args()
 
-    if args.backend == 'POSTGRES':
-        docs_index, plugins_index = load_indexs_POSTGRES()
-        main_index = docs_index
-
-    elif args.backend == 'LLAMA_INDEX':
-        main_index = load_index_llamaindex()
+    # Load the default Tekton documentation index from ChromaDB
+    index = load_index_chromadb()
 
     jenkinsfile_content = read_jenkinsfile(args.jenkinsfile_path)
     RETRIEVAL_QUERY = f"Convert this Jenkinsfile to Tekton YAML: {Path(args.jenkinsfile_path).name}"
 
-    run_conversion_query(main_index, jenkinsfile_content, RETRIEVAL_QUERY, TOP_K_CHUNKS)
+    run_conversion_query(index, jenkinsfile_content, RETRIEVAL_QUERY, TOP_K_CHUNKS)
 
 
 if __name__ == "__main__":

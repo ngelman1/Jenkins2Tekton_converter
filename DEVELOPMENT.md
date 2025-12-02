@@ -68,14 +68,14 @@ Once your environment is set up, you can run the scripts directly:
 The RAG index is included in the container image, so users don't need to build it themselves. As a developer, you **must** build this index locally before building the container:
 
 ```bash
-# Build the index locally (this will be included in the container image)
-python ingest_tekton_data.py --backend LLAMA_INDEX
+# Build the ChromaDB index locally (this will be included in the container image)
+python ingest_tekton_data.py
 ```
 
-This creates the `tekton_docs_index/` directory with the FAISS vector index. This directory is **excluded from git** (due to large file sizes ~20MB) but **required for building the container image**.
+This creates the `chroma_db/` directory with the ChromaDB vector database. This directory is **excluded from git** (due to large file sizes) but **required for building the container image**.
 
 **Important Notes:**
-- The `tekton_docs_index/` directory is in `.gitignore` and not committed to version control
+- The `chroma_db/` directory is in `.gitignore` and not committed to version control
 - You must build the index locally before building the container image
 - When you update Tekton documentation in `tekton_docs/`, rebuild the index before building a new container image
 - Different developers may have slightly different index files due to timestamp/randomness in the embedding process, but they are functionally equivalent
@@ -83,7 +83,7 @@ This creates the `tekton_docs_index/` directory with the FAISS vector index. Thi
 ### Generate Tekton Pipeline
 
 ```bash
-python generate_tekton_pipeline.py <YOUR_JENKINSFILE_NAME> --backend LLAMA_INDEX
+python generate_tekton_pipeline.py <YOUR_JENKINSFILE_NAME>
 ```
 
 ## Project Structure
@@ -96,7 +96,7 @@ python generate_tekton_pipeline.py <YOUR_JENKINSFILE_NAME> --backend LLAMA_INDEX
 ├── generate_tekton_pipeline.py # Pipeline generation script
 ├── requirements.txt           # Python dependencies
 ├── tekton_docs/              # Tekton documentation for RAG (committed to git)
-├── tekton_docs_index/        # FAISS index (gitignored, built locally, included in container)
+├── chroma_db/                # ChromaDB vector database (gitignored, built locally, included in container)
 └── .venv/                    # Virtual environment (gitignored)
 ```
 
@@ -111,17 +111,17 @@ python generate_tekton_pipeline.py <YOUR_JENKINSFILE_NAME> --backend LLAMA_INDEX
 
 ### Prerequisites
 
-Before building the container, you **must** build the RAG index locally. The Containerfile copies this directory into the image.
+Before building the container, you **must** build the ChromaDB index locally. The Containerfile copies this directory into the image.
 
 ```bash
 # Check if the index exists
-ls -la tekton_docs_index/
+ls -la chroma_db/
 
 # If the directory doesn't exist or is empty, build it:
-python ingest_tekton_data.py --backend LLAMA_INDEX
+python ingest_tekton_data.py
 
-# Verify the index was created (should see ~20MB of files)
-du -sh tekton_docs_index/
+# Verify the index was created
+du -sh chroma_db/
 ```
 
 ### Build the Container
@@ -134,7 +134,7 @@ podman build -f images/Containerfile -t quay.io/<your-image-repo>/jenkins2tekton
 podman tag quay.io/<your-image-repo>/jenkins2tekton:latest quay.io/<your-image-repo>/jenkins2tekton:v1.0.0
 ```
 
-**Note:** If the build fails with an error about `tekton_docs_index/` not found, you forgot to build the index first (see Prerequisites above).
+**Note:** If the build fails with an error about `chroma_db/` not found, you forgot to build the index first (see Prerequisites above).
 
 ### Test the Container Locally
 
@@ -145,7 +145,7 @@ podman run -it --rm \
     quay.io/<your-image-repo>/jenkins2tekton:latest
 
 # Inside the container, test the generation:
-python generate_tekton_pipeline.py <test-jenkinsfile> --backend LLAMA_INDEX
+python generate_tekton_pipeline.py <test-jenkinsfile>
 ```
 
 ### Push to Quay.io
@@ -168,7 +168,7 @@ podman push quay.io/<your-image-repo>/jenkins2tekton:v1.0.0
 When updating the Tekton documentation:
 
 1. Update documentation files in `tekton_docs/`
-2. Rebuild the RAG index: `python ingest_tekton_data.py --backend LLAMA_INDEX`
+2. Rebuild the ChromaDB index: `python ingest_tekton_data.py`
 3. Commit the documentation changes: `git add tekton_docs/ && git commit -m "Update Tekton docs"`
 4. Rebuild the container image (it will pick up the new index)
 5. Test the new image locally
