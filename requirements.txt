@@ -32,3 +32,6 @@ llama-index-vector-stores-chroma
 
 # ChromaDB vector database
 chromadb>=0.4.0
+
+#dependency for llms-google-genai package
+llama-index-llms-gemini
