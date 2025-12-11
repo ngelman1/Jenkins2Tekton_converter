@@ -1,0 +1,30 @@
+// Jenkinsfile 2: Docker Build with Dynamic Tags
+@Library('HariLib@master') _
+
+def APP_VERSION = '1.2.3'
+
+pipeline {
+    agent { label 'docker-node' }
+    stages {
+        stage('Build Image') {
+            steps {
+                script {
+                    def IMAGE_TAG = "${env.BRANCH_NAME}-${APP_VERSION}"
+
+                    // 1. Call a complex shared step with map arguments
+                    dockerBuild(
+                        tag: IMAGE_TAG,
+                        // 2. Pass multiple parameters to the custom step
+                        registry: 'my-internal-registry.com',
+                        login: true
+                    )
+                }
+            }
+        }
+        stage('Push Image') {
+            steps {
+                sh "docker push my-internal-registry.com/${env.BRANCH_NAME}-${APP_VERSION}"
+            }
+        }
+    }
+}
