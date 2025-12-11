@@ -1,29 +1,32 @@
-// Jenkinsfile 2: Docker Build with Dynamic Tags
+// Jenkinsfile 1: Simple gitSetup Step and Conditional
+// Uses a step confirmed to exist in HariSekhon/Jenkins: 'vars/gitSetup.groovy'
 @Library('HariLib@master') _
 
-def APP_VERSION = '1.2.3'
-
 pipeline {
-    agent { label 'docker-node' }
+    agent any
     stages {
-        stage('Build Image') {
+        stage('Initialize') {
             steps {
-                script {
-                    def IMAGE_TAG = "${env.BRANCH_NAME}-${APP_VERSION}"
-
-                    // 1. Call a complex shared step with map arguments
-                    dockerBuild(
-                        tag: IMAGE_TAG,
-                        // 2. Pass multiple parameters to the custom step
-                        registry: 'my-internal-registry.com',
-                        login: true
-                    )
-                }
+                echo 'Starting CI Build for Converter Testing...'
             }
         }
-        stage('Push Image') {
+        stage('Basic Git Setup') {
             steps {
-                sh "docker push my-internal-registry.com/${env.BRANCH_NAME}-${APP_VERSION}"
+                // 1. Simple call to the correct custom step ('gitSetup.groovy')
+                // This step performs basic environment initialization related to Git.
+                gitSetup("Setting up global Git identity")
+            }
+        }
+
+        stage('Verify Setup') {
+            steps {
+                script {
+                    echo "--- VERIFYING GIT CONFIGURATION ---"
+                    // These commands will print the values currently set in the local git config
+                    sh 'git config --get user.name'
+                    sh 'git config --get user.email'
+                    echo "-----------------------------------"
+                }
             }
         }
     }
