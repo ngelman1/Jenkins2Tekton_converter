@@ -1,0 +1,29 @@
+// Jenkinsfile 3: Complex Pipeline Call with Credentials
+@Library('HariLib@master') _
+
+pipeline {
+    agent any
+    stages {
+        stage('Deploy Application') {
+            steps {
+                script {
+                    echo 'Calling full deployment pipeline function...'
+
+                    // 1. Call the entire deployment pipeline as a single function
+                    gcpDeployKubernetesPipeline(
+                        // 2. Complex arguments, including list of images
+                        images: [
+                            'service-frontend',
+                            'service-backend',
+                            'service-worker'
+                        ],
+                        project: 'gcp-project-tekton-dev',
+                        env: 'staging',
+                        // 3. Credential ID that must be mapped to a Tekton Secret
+                        gcp_serviceaccount_key: 'jenkins-gcp-creds-id'
+                    )
+                }
+            }
+        }
+    }
+}

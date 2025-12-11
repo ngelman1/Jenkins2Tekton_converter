@@ -1,0 +1,33 @@
+// Jenkinsfile 1: Simple gitSetup Step and Conditional
+// Uses a step confirmed to exist in HariSekhon/Jenkins: 'vars/gitSetup.groovy'
+@Library('HariLib@master') _
+
+pipeline {
+    agent any
+    stages {
+        stage('Initialize') {
+            steps {
+                echo 'Starting CI Build for Converter Testing...'
+            }
+        }
+        stage('Basic Git Setup') {
+            steps {
+                // 1. Simple call to the correct custom step ('gitSetup.groovy')
+                // This step performs basic environment initialization related to Git.
+                gitSetup("Setting up global Git identity")
+            }
+        }
+
+        stage('Verify Setup') {
+            steps {
+                script {
+                    echo "--- VERIFYING GIT CONFIGURATION ---"
+                    // These commands will print the values currently set in the local git config
+                    sh 'git config --get user.name'
+                    sh 'git config --get user.email'
+                    echo "-----------------------------------"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,29 @@
+// Jenkinsfile: Minimal Docker Availability Check
+@Library('HariLib@master') _
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Check Requirements') {
+            steps {
+                script {
+
+                    boolean dockerExists = isDockerAvailable()
+
+                    if (dockerExists) {
+                        echo "Docker is available."
+                    } else {
+                        error "Docker is missing."
+                    }
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'docker --version'
+            }
+        }
+    }
+}
