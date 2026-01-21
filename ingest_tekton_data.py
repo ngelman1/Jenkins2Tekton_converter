@@ -10,7 +10,7 @@ from llama_index.core.storage.storage_context import StorageContext
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 
-from rag_config import setup_rag_configuration, CHROMA_PERSIST_DIR, COLLECTION_NAME
+from rag_config import setup_rag_configuration, TEKTON_DB_PATH, DEFAULT_COLLECTION_NAME
 
 # Documentation directory
 DOCS_DIR = Path("./tekton_docs")
@@ -43,19 +43,19 @@ def ingest_data_to_chromadb(documents: List):
     Creates the 'default_data' collection that ships with the container image.
     Future: Support per-customer collections for multi-tenancy.
     """
-    cprint(f"Initializing ChromaDB at: {CHROMA_PERSIST_DIR}", "blue")
+    cprint(f"Initializing ChromaDB at: {TEKTON_DB_PATH}", "blue")
 
     # Initialize ChromaDB client with persistent storage
-    chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+    chroma_client = chromadb.PersistentClient(path=TEKTON_DB_PATH)
 
     # Get or create the default collection
     # Note: ChromaDB will create the collection if it doesn't exist
     chroma_collection = chroma_client.get_or_create_collection(
-        name=COLLECTION_NAME,
+        name=DEFAULT_COLLECTION_NAME,
         metadata={"description": "Default Tekton documentation shipped with container"}
     )
 
-    cprint(f"Using collection: '{COLLECTION_NAME}'", "blue")
+    cprint(f"Using collection: '{DEFAULT_COLLECTION_NAME}'", "blue")
 
     # Create ChromaDB vector store
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
@@ -71,8 +71,8 @@ def ingest_data_to_chromadb(documents: List):
         storage_context=storage_context
     )
 
-    cprint(f"✓ Ingestion complete. {len(documents)} documents vectorized and stored in collection '{COLLECTION_NAME}'.", "green")
-    cprint(f"✓ ChromaDB persisted to: {CHROMA_PERSIST_DIR}", "green")
+    cprint(f"✓ Ingestion complete. {len(documents)} documents vectorized and stored in collection '{DEFAULT_COLLECTION_NAME}'.", "green")
+    cprint(f"✓ ChromaDB persisted to: {TEKTON_DB_PATH}", "green")
 
 
 def main():

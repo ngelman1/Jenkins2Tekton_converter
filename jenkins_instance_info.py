@@ -119,16 +119,22 @@ def get_shared_libraries(server: Jenkins) -> List[Dict[str, Any]]:
 
 
 
+
 def get_all_jobs(server: Jenkins) -> List[Dict[str, Any]]:
     jobs_list = server.get_all_jobs()
     cprint(f"\n--- Found {len(jobs_list)} Jobs ---", "blue")
     return jobs_list
 
 
-def main():
+def get_jenkins_client() -> Jenkins:
+    """
+    Initialize and return a Jenkins client using environment variables.
+    Exits if variables are missing or connection fails.
+    """
     jenkins_url = os.getenv(JENKINS_URL_ENV)
     username = os.getenv(JENKINS_USER_ENV)
     token = os.getenv(JENKINS_TOKEN_ENV)
+    
     if not jenkins_url or not username or not token:
         cprint("\nFATAL: Missing required environment variables.", "red")
         cprint("Please set: JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN", "yellow")
@@ -136,12 +142,16 @@ def main():
         sys.exit(1)
 
     try:
-        cur_server = Jenkins(jenkins_url, username=username, password=token)
-        # server.get_version()
-        # cprint("Connection successful.", "green")
-    except JenkinsException as e:
-        cprint(f"❌ Error connecting to Jenkins or during API call: {e}", "red")
+        server = Jenkins(jenkins_url, username=username, password=token)
+       # server.get_version()
+        return server
+    except Exception as e:
+        cprint(f"❌ Error connecting to Jenkins: {e}", "red")
         sys.exit(1)
+
+
+def main():
+    cur_server = get_jenkins_client()
 
     plugins = get_installed_plugins(cur_server)
     jobs = get_all_jobs(cur_server)

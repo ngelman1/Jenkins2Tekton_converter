@@ -18,25 +18,15 @@ LLM_MODEL = "gemini-2.5-flash"
 EMBEDDING_DIMENSION = 768
 
 # ChromaDB Configuration
-CHROMA_PERSIST_DIR = "./chroma_db"
-COLLECTION_NAME = "default_data"
+# Separate paths for static shared data(Tekton) and dynamic personal data(Jenkins)
+TEKTON_DB_PATH = "./chroma_db/tekton"
+JENKINS_DB_PATH = "./chroma_db/jenkins"
+
+DEFAULT_COLLECTION_NAME = "default_data"
+JENKINS_COLLECTION_NAME = "jenkins_data"
 
 
 def setup_rag_configuration() -> str:
-    """
-    Validate GEMINI_API_KEY and configure RAG settings.
-
-    This function:
-    - Validates that GEMINI_API_KEY environment variable is set
-    - Configures the global Settings object with embedding model and LLM
-    - Provides helpful error messages if configuration fails
-
-    Returns:
-        str: The validated API key
-
-    Exits:
-        If API key is not set or configuration fails
-    """
     api_key = os.getenv('GEMINI_API_KEY')
 
     if not api_key:
