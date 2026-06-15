@@ -1,6 +1,6 @@
 import sys
-import os
 import argparse
+import os
 from pathlib import Path
 from termcolor import cprint
 from typing import List, Dict, Any
@@ -12,8 +12,9 @@ from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 
-from rag_config import setup_rag_configuration, CHROMA_PERSIST_DIR, COLLECTION_NAME
+from rag_config import setup_rag_configuration, TEKTON_DB_PATH, DEFAULT_COLLECTION_NAME
 from jenkins_instance_info import get_shared_libraries, JENKINS_URL_ENV, JENKINS_USER_ENV, JENKINS_TOKEN_ENV
+
 
 # --- CONFIGURATION ---
 TOP_K_CHUNKS = 4
@@ -71,21 +72,21 @@ def load_index_chromadb() -> VectorStoreIndex:
     Uses the 'default_data' collection that ships with the container.
     Future: Support loading per-customer collections for multi-tenancy.
     """
-    if not Path(CHROMA_PERSIST_DIR).exists():
-        cprint(f"ChromaDB storage '{CHROMA_PERSIST_DIR}' does not exist.", "red")
+    if not Path(TEKTON_DB_PATH).exists():
+        cprint(f"ChromaDB storage '{TEKTON_DB_PATH}' does not exist.", "red")
         cprint(f"To create the index, run: python ingest_tekton_data.py", "yellow")
         sys.exit(1)
 
     try:
-        cprint(f"Loading ChromaDB from: {CHROMA_PERSIST_DIR}", "blue")
+        cprint(f"Loading ChromaDB from: {TEKTON_DB_PATH}", "blue")
 
         # Initialize ChromaDB client
-        chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+        chroma_client = chromadb.PersistentClient(path=TEKTON_DB_PATH)
 
         # Get the default collection
-        chroma_collection = chroma_client.get_collection(name=COLLECTION_NAME)
+        chroma_collection = chroma_client.get_collection(name=DEFAULT_COLLECTION_NAME)
 
-        cprint(f"✓ Collection loaded: '{COLLECTION_NAME}' ({chroma_collection.count()} vectors)", "green")
+        cprint(f"✓ Collection loaded: '{DEFAULT_COLLECTION_NAME}' ({chroma_collection.count()} vectors)", "green")
 
         # Create vector store from collection
         vector_store = ChromaVectorStore(chroma_collection=chroma_collection)

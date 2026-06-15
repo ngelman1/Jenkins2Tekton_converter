@@ -17,15 +17,7 @@ DOCS_DIR = Path("./tekton_docs")
 
 
 def load_documents(docs_dir: Path) -> List:
-    """
-    Load documents from the specified directory.
 
-    Args:
-        docs_dir: Path to the directory containing documentation
-
-    Returns:
-        List of loaded documents
-    """
     if not docs_dir.exists():
         cprint(f"FATAL: Documentation directory '{docs_dir}' does not exist.", "red")
         sys.exit(1)
@@ -37,19 +29,15 @@ def load_documents(docs_dir: Path) -> List:
     return documents
 
 
+
 def ingest_data_to_chromadb(documents: List):
-    """
-    Ingest Tekton documentation into ChromaDB.
-    Creates the 'default_data' collection that ships with the container image.
-    Future: Support per-customer collections for multi-tenancy.
-    """
+
     cprint(f"Initializing ChromaDB at: {TEKTON_DB_PATH}", "blue")
 
     # Initialize ChromaDB client with persistent storage
     chroma_client = chromadb.PersistentClient(path=TEKTON_DB_PATH)
 
-    # Get or create the default collection
-    # Note: ChromaDB will create the collection if it doesn't exist
+    # Create the default collection
     chroma_collection = chroma_client.get_or_create_collection(
         name=DEFAULT_COLLECTION_NAME,
         metadata={"description": "Default Tekton documentation shipped with container"}
@@ -57,7 +45,7 @@ def ingest_data_to_chromadb(documents: List):
 
     cprint(f"Using collection: '{DEFAULT_COLLECTION_NAME}'", "blue")
 
-    # Create ChromaDB vector store
+    # Create ChromaDB vector store using the llama_index wrapper
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
 
     # Create storage context
