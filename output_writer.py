@@ -7,7 +7,7 @@ from typing import Dict, List
 import yaml
 from termcolor import cprint
 
-OUTPUT_DIR = Path("./output-demo")
+OUTPUT_DIR = Path("./output-dir")
 MARKDOWN_FENCE_RE = re.compile(r"^\s*```\w*\s*\n?", re.MULTILINE)
 
 
