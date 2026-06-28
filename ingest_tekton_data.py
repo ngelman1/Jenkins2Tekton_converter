@@ -34,11 +34,16 @@ def ingest_data_to_chromadb(documents: List):
 
     cprint(f"Initializing ChromaDB at: {TEKTON_DB_PATH}", "blue")
 
-    # Initialize ChromaDB client with persistent storage
     chroma_client = chromadb.PersistentClient(path=TEKTON_DB_PATH)
 
-    # Create the default collection
-    chroma_collection = chroma_client.get_or_create_collection(
+    # Drop the old collection so we don't accumulate duplicate vectors.
+    try:
+        chroma_client.delete_collection(name=DEFAULT_COLLECTION_NAME)
+        cprint(f"  Dropped existing collection '{DEFAULT_COLLECTION_NAME}'", "yellow")
+    except ValueError:
+        pass
+
+    chroma_collection = chroma_client.create_collection(
         name=DEFAULT_COLLECTION_NAME,
         metadata={"description": "Default Tekton documentation shipped with container"}
     )

@@ -13,7 +13,7 @@ from llama_index.llms.google_genai import GoogleGenAI
 
 
 # Model Configuration
-EMBEDDING_MODEL = "models/text-embedding-004"
+EMBEDDING_MODEL = "gemini-embedding-001"
 LLM_MODEL = "gemini-2.5-flash"
 EMBEDDING_DIMENSION = 768
 
